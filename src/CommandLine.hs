@@ -12,10 +12,6 @@ import Data.Time.Format(formatTime, defaultTimeLocale)
 import Network.AWS(Region(..), Credentials(..), Env,
                    runAWS, runResourceT, newEnv, send, envRegion)
 import Network.AWS.Data(toText)
-import Network.AWS.EC2.DescribeAvailabilityZones(describeAvailabilityZones,
-                                                 dazrsAvailabilityZones,
-                                                 dazZoneNames)
-import Network.AWS.EC2.Types(azZoneName)
 import Options
 import System.Console.GetOpt(ArgDescr(..), OptDescr(..), ArgOrder(..))
 import System.Console.GetOpt(getOpt, usageInfo)
@@ -53,12 +49,6 @@ validateS3Bucket b opts
   | otherwise              = addOpt opts (set optS3Bucket (fromString b))
  where isBuckCh c = isAlphaNum c || (c == '-') || (c == '.')
 
-validateZone :: String -> OptOrErr -> OptOrErr
-validateZone z opts
-  | z `elem` zones = addOpt   opts (set optS3Zone (fromString z))
-  | otherwise      = addError opts "Unknown S3 zone."
- where zones = ["us-west-2a"]
-
 validateRegion :: String -> OptOrErr -> OptOrErr
 validateRegion r opts =
   case lookup (map toLower r) regions of
@@ -89,8 +79,6 @@ options =
            "AWS secret key to use"
   , Option ['b'] ["s3-bucket"] (ReqArg validateS3Bucket "BUCKET")
            "S3 bucket to upload to, temporarily."
-  , Option ['z'] ["zone"] (ReqArg validateZone "ZONE")
-           "S3 zone in which that bucket livees."
   , Option ['r'] ["region"] (ReqArg validateRegion "REGION")
            "S3 region to upload to."
   , Option ['a'] ["kernel-args"]
@@ -132,31 +120,7 @@ getOptions argv =
          skey  = view optAwsSecretKey opts
          creds = FromKeys akey skey
      e <- set envRegion (view optAwsRegion opts) `fmap` newEnv creds
-     let region = toText (view optS3Zone opts)
-         zoneRequest = set dazZoneNames [region] describeAvailabilityZones
-     r <- catch ((runResourceT . runAWS e) (send zoneRequest))
-            (\ se ->
-               do printInitialServiceError se
-                  exitWith (ExitFailure 1))
-     let z = Just (view optS3Zone opts)
-     unless (elemOf (dazrsAvailabilityZones . folded . azZoneName) z r) $
-       fail' ["Invalid availability zone for region."]
      return (opts, e)
-
-printInitialServiceError :: SomeException -> IO ()
-printInitialServiceError se =
-  do putStrLn "ERROR: Failed to get list of zones from Amazon. This typically"
-     putStrLn "is caused by one of two problems:"
-     putStrLn ""
-     putStrLn "  #1: There's something wrong with your keys. Check your"
-     putStrLn "      arguments, or make sure AWS_ACCESS_KEY and AWS_SECRET_KEY"
-     putStrLn "      are what you want them to be."
-     putStrLn "  #2: There's something wrong with your computer's clock. Run"
-     putStrLn "      whatever software you have to synchronize your clock, and"
-     putStrLn "      try again."
-     putStrLn ""
-     putStrLn "Just in case it's useful, here's the raw error:"
-     putStrLn (show se)
 
 adjustTargetName :: UTCTime -> Options -> Options
 adjustTargetName now opts

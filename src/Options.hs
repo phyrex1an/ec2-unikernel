@@ -4,7 +4,6 @@ module Options(
        , optAwsAccessKey
        , optAwsSecretKey
        , optS3Bucket
-       , optS3Zone
        , optAwsRegion
        , optTargetKey
        , optImageName
@@ -24,7 +23,6 @@ data Options = Options
   { _optAwsAccessKey :: AccessKey
   , _optAwsSecretKey :: SecretKey
   , _optS3Bucket     :: BucketName
-  , _optS3Zone       :: Text
   , _optTargetKey    :: ObjectKey
   , _optAwsRegion    :: Region
   , _optKernel       :: FilePath
@@ -38,7 +36,6 @@ defaultOptions = Options
   { _optAwsAccessKey = fromString ""
   , _optAwsSecretKey = fromString ""
   , _optS3Bucket     = fromString "unikernels"
-  , _optS3Zone       = fromString "us-west-2a"
   , _optTargetKey    = fromString "badfile/,:"
   , _optAwsRegion    = Oregon
   , _optKernel       = "kernel"
@@ -59,9 +56,6 @@ optAwsSecretKey = lens _optAwsSecretKey (\ x v -> x{ _optAwsSecretKey = v })
 
 optS3Bucket :: Lens' Options BucketName
 optS3Bucket = lens _optS3Bucket (\ x v -> x{ _optS3Bucket = v })
-
-optS3Zone :: Lens' Options Text
-optS3Zone = lens _optS3Zone (\ x v -> x{ _optS3Zone = v })
 
 optTargetKey :: Lens' Options ObjectKey
 optTargetKey = lens _optTargetKey (\ x v -> x{ _optTargetKey = v })
