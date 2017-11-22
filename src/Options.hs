@@ -2,7 +2,6 @@ module Options(
          Options
        , defaultOptions
        , optS3Bucket
-       , optAwsRegion
        , optTargetKey
        , optImageName
        , optKernel
@@ -14,13 +13,12 @@ module Options(
 import Control.Lens(Lens', lens)
 import Data.String(fromString)
 import Data.Text(Text)
-import Network.AWS(AccessKey, SecretKey, Region(..))
+import Network.AWS(AccessKey, SecretKey)
 import Network.AWS.S3.Types(BucketName, ObjectKey)
 
 data Options = Options
   { _optS3Bucket     :: BucketName
   , _optTargetKey    :: ObjectKey
-  , _optAwsRegion    :: Region
   , _optKernel       :: FilePath
   , _optKernelArgs   :: String
   , _optRamdisks     :: [FilePath]
@@ -31,7 +29,6 @@ defaultOptions :: Options
 defaultOptions = Options
   { _optS3Bucket     = fromString "unikernels"
   , _optTargetKey    = fromString "badfile/,:"
-  , _optAwsRegion    = Oregon
   , _optKernel       = "kernel"
   , _optKernelArgs   = ""
   , _optRamdisks     = []
@@ -47,9 +44,6 @@ optS3Bucket = lens _optS3Bucket (\ x v -> x{ _optS3Bucket = v })
 
 optTargetKey :: Lens' Options ObjectKey
 optTargetKey = lens _optTargetKey (\ x v -> x{ _optTargetKey = v })
-
-optAwsRegion :: Lens' Options Region
-optAwsRegion = lens _optAwsRegion (\ x v -> x{ _optAwsRegion = v })
 
 optKernel :: Lens' Options FilePath
 optKernel = lens _optKernel (\ x v -> x{ _optKernel = v })

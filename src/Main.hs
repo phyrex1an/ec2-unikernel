@@ -56,7 +56,7 @@ import           Network.AWS.S3.UploadPart(uploadPart, uprsETag,
                                            uprsResponseStatus)
 import           Options(Options, optS3Bucket, optTargetKey, optImageName,
                          optS3Bucket, optTargetKey, optKernel, optKernelArgs,
-                         optRamdisks, optS3Bucket, optAwsRegion)
+                         optRamdisks, optS3Bucket)
 import           System.Directory(copyFile)
 import           System.Environment(getArgs)
 import           System.Exit(ExitCode(..), exitWith)
@@ -191,9 +191,7 @@ makeBucket opts e =
           logm "S3" ("Created bucket " ++ unpack (toText bucketName))
  where
   bucketName    = view optS3Bucket opts
-  location      = Just (LocationConstraint (view optAwsRegion opts))
-  config        = set cbcLocationConstraint location createBucketConfiguration
-  createRequest = set cbCreateBucketConfiguration (Just config) $
+  createRequest = set cbCreateBucketConfiguration (Just createBucketConfiguration) $
                     createBucket bucketName
 
 uploadFile :: Options -> Env -> FilePath -> IO ()

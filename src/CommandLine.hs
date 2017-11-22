@@ -9,8 +9,8 @@ import Data.Either(isLeft)
 import Data.String(IsString, fromString)
 import Data.Time.Clock(UTCTime, getCurrentTime)
 import Data.Time.Format(formatTime, defaultTimeLocale)
-import Network.AWS(Region(..), Credentials(..), Env,
-                   runAWS, runResourceT, newEnv, send, envRegion)
+import Network.AWS(Credentials(..), Env, runAWS,
+                   runResourceT, newEnv, send)
 import Network.AWS.Data(toText)
 import Options
 import System.Console.GetOpt(ArgDescr(..), OptDescr(..), ArgOrder(..))
@@ -35,34 +35,10 @@ validateS3Bucket b opts
   | otherwise              = addOpt opts (set optS3Bucket (fromString b))
  where isBuckCh c = isAlphaNum c || (c == '-') || (c == '.')
 
-validateRegion :: String -> OptOrErr -> OptOrErr
-validateRegion r opts =
-  case lookup (map toLower r) regions of
-    Nothing -> addError opts "Unknown AWS region."
-    Just v  -> addOpt   opts (set optAwsRegion v)
-
-regions :: [(String, Region)]
-regions =
-  [ ("ireland", Ireland), ("eu-west-1", Ireland)
-  , ("frankfurt", Frankfurt), ("eu-central-1", Frankfurt)
-  , ("tokyo", Tokyo), ("ap-northeast-1", Tokyo)
-  , ("singapore", Singapore), ("ap-southeast-1", Singapore)
-  , ("sydney", Sydney), ("ap-southeast-2", Sydney)
-  , ("beijing", Beijing), ("cn-north-1", Beijing)
-  , ("northvirginia", NorthVirginia), ("us-east-1", NorthVirginia)
-  , ("northcalifornia", NorthCalifornia), ("us-west-1", NorthCalifornia)
-  , ("oregon", Oregon), ("us-west-2", Oregon)
-  , ("govcloud", GovCloud), ("us-gov-west-1", GovCloud)
-  , ("govcloudfips", GovCloudFIPS), ("fips-us-gov-west-1", GovCloudFIPS)
-  , ("saopaulo", SaoPaulo), ("sa-east-1", SaoPaulo)
-  ]
-
 options :: [OptDescr (OptOrErr -> OptOrErr)]
 options =
   [ Option ['b'] ["s3-bucket"] (ReqArg validateS3Bucket "BUCKET")
            "S3 bucket to upload to, temporarily."
-  , Option ['r'] ["region"] (ReqArg validateRegion "REGION")
-           "S3 region to upload to."
   , Option ['a'] ["kernel-args"]
            (ReqArg (\a opts -> addOpt opts (set optKernelArgs a)) "STRING")
            "Kernel arguments to pass to the unikernel."
@@ -94,7 +70,7 @@ getOptions argv =
               disks'  = filter (not . snd) disks
               disks'' = map fst disks'
           fail' (map (\s -> "Ramdisk "++s++" not found.") disks'')
-     e <- set envRegion (view optAwsRegion opts) `fmap` newEnv Discover
+     e <- newEnv Discover
      return (opts, e)
 
 adjustTargetName :: UTCTime -> Options -> Options
