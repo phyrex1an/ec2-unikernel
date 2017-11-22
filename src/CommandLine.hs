@@ -16,7 +16,6 @@ import Options
 import System.Console.GetOpt(ArgDescr(..), OptDescr(..), ArgOrder(..))
 import System.Console.GetOpt(getOpt, usageInfo)
 import System.Directory(doesFileExist)
-import System.Environment(lookupEnv)
 import System.Exit(ExitCode(ExitFailure), exitWith)
 import System.FilePath(takeFileName)
 
@@ -29,19 +28,6 @@ addError (Right _)   err = Left [err]
 addOpt :: OptOrErr -> (Options -> Options) -> OptOrErr
 addOpt (Left errs) _ = Left errs
 addOpt (Right o) f   = Right (f o)
-
-validateAccessKey :: String -> OptOrErr -> OptOrErr
-validateAccessKey ak opts
-  | length ak /= 20           = addError opts "Access key doesn't look right."
-  | any (not . isAlphaNum) ak = addError opts "Access key has weird characters."
-  | otherwise                 = addOpt opts (set optAwsAccessKey (fromString ak))
-
-validateSecretKey :: String -> OptOrErr -> OptOrErr
-validateSecretKey sk opts
-  | length sk /= 40           = addError opts "Secret key doesn't look right."
-  | any (not . isSecKeyCh) sk = addError opts "Secret key has weird characters."
-  | otherwise                 = addOpt opts (set optAwsSecretKey (fromString sk))
- where isSecKeyCh c = isAlphaNum c || (c == '/') || (c == '+')
 
 validateS3Bucket :: String -> OptOrErr -> OptOrErr
 validateS3Bucket b opts
@@ -73,11 +59,7 @@ regions =
 
 options :: [OptDescr (OptOrErr -> OptOrErr)]
 options =
-  [ Option ['o'] ["aws-access-key"] (ReqArg validateAccessKey "KEY")
-           "AWS access key to use"
-  , Option ['w'] ["aws-secret-key"] (ReqArg validateSecretKey "VALUE")
-           "AWS secret key to use"
-  , Option ['b'] ["s3-bucket"] (ReqArg validateS3Bucket "BUCKET")
+  [ Option ['b'] ["s3-bucket"] (ReqArg validateS3Bucket "BUCKET")
            "S3 bucket to upload to, temporarily."
   , Option ['r'] ["region"] (ReqArg validateRegion "REGION")
            "S3 region to upload to."
@@ -92,12 +74,8 @@ maybeSet field (Just v) x = set field (fromString v) x
 
 getOptions :: [String] -> IO (Options, Env)
 getOptions argv =
-  do maccess <- lookupEnv "AWS_ACCESS_KEY"
-     msecret <- lookupEnv "AWS_SECRET_KEY"
-     let defaultOptions'  = maybeSet optAwsAccessKey maccess defaultOptions
-         defaultOptions'' = maybeSet optAwsSecretKey msecret defaultOptions'
-         (res, xs, errs)  = getOpt RequireOrder options argv
-         doneOpts         = foldl (flip id) (Right defaultOptions'') res
+  do let (res, xs, errs)  = getOpt RequireOrder options argv
+         doneOpts         = foldl (flip id) (Right defaultOptions) res
          optErrors        = either id (const []) doneOpts
          kernelErrs       = if null xs then ["No unikernel specified!"] else []
          Right baseOpts   = doneOpts
@@ -116,10 +94,7 @@ getOptions argv =
               disks'  = filter (not . snd) disks
               disks'' = map fst disks'
           fail' (map (\s -> "Ramdisk "++s++" not found.") disks'')
-     let akey  = view optAwsAccessKey opts
-         skey  = view optAwsSecretKey opts
-         creds = FromKeys akey skey
-     e <- set envRegion (view optAwsRegion opts) `fmap` newEnv creds
+     e <- set envRegion (view optAwsRegion opts) `fmap` newEnv Discover
      return (opts, e)
 
 adjustTargetName :: UTCTime -> Options -> Options
