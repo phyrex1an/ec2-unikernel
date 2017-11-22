@@ -51,7 +51,7 @@ validateS3Bucket :: String -> OptOrErr -> OptOrErr
 validateS3Bucket b opts
   | any (not . isBuckCh) b = addError opts "S3 bucket has weird characters."
   | otherwise              = addOpt opts (set optS3Bucket (fromString b))
- where isBuckCh c = isAlphaNum c || (c == '-')
+ where isBuckCh c = isAlphaNum c || (c == '-') || (c == '.')
 
 validateZone :: String -> OptOrErr -> OptOrErr
 validateZone z opts
